@@ -116,7 +116,7 @@ def main():
                     rabbitmq_queue = spec.get("rabbitmqQueue", os.getenv("RABBITMQ_QUEUE"))
                     rabbitmq_user = spec.get("rabbitmqUser", os.getenv("RABBITMQ_USER"))
                     rabbitmq_password = spec.get("rabbitmqPassword", os.getenv("RABBITMQ_PASSWORD"))
-                    deployment_name = f"rabbitmq-consumer-{rabbitmq_queue}"
+                    deployment_name = f"rabbitmq-consumer"
 
                     # Get the current queue length
                     queue_length = get_queue_length(rabbitmq_host, rabbitmq_user, rabbitmq_password, rabbitmq_queue)

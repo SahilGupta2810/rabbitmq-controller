@@ -18,7 +18,7 @@ spec:
       serviceAccountName: rabbitmq-controller
       containers:
       - name: rabbitmq-controller
-        image: sahil2898/one2n-controller:v1.3
+        image: sahil2898/one2n-controller:v1.4
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST
