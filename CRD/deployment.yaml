@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq-controller
-        image: sahil2898/one2n-controller:v5
+        image: sahil2898/one2n-controller:v1.0
         imagePullPolicy: IfNotPresent
         resources:
           limits:

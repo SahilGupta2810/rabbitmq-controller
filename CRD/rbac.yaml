@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: rabbitmq-consumer-manager
 rules:
-  - apiGroups: ["example.com"] # API group of the CRD
+  - apiGroups: ["one2n.com"] # API group of the CRD
     resources: ["rabbitmqconsumers"] # Custom resource
     verbs: ["get", "list", "watch"] # Permissions needed by the controller
 --- 

@@ -116,7 +116,7 @@ def main():
     """
     Main controller loop to watch for RabbitMQConsumer resources and manage deployments.
     """
-    crd_group = "example.com"
+    crd_group = "one2n.com"
     crd_version = "v1"
     crd_plural = "rabbitmqconsumers"
 
