@@ -1,8 +1,8 @@
 import os
 import time
-from kubernetes import client, config, watch
-import pika
 import logging
+from kubernetes import client, config
+import pika
 
 # Set up logging
 logging.basicConfig(
@@ -16,7 +16,6 @@ config.load_incluster_config()
 
 # Kubernetes API clients
 apps_v1 = client.AppsV1Api()
-custom_objects_api = client.CustomObjectsApi()
 
 
 def get_queue_length(rabbitmq_host, rabbitmq_user, rabbitmq_password, queue_name):
@@ -88,60 +87,47 @@ def scale_deployment(namespace, deployment_name, desired_replicas):
 
 def main():
     """
-    Main controller loop to watch for RabbitMQConsumer resources and manage deployments.
+    Main controller loop to periodically fetch RabbitMQ queue length and manage deployments.
     """
-    crd_group = os.getenv("CRD_GROUP", "one2n.com")
-    crd_version = os.getenv("CRD_VERSION", "v1")
-    crd_plural = os.getenv("CRD_PLURAL", "rabbitmqconsumers")
     namespace = os.getenv("NAMESPACE", "default")
-
     min_replicas = int(os.getenv("MIN_REPLICAS", 1))
     max_replicas = int(os.getenv("MAX_REPLICAS", 10))
     threshold = int(os.getenv("THRESHOLD", 100))
+    rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq.default.svc.cluster.local")
+    rabbitmq_queue = os.getenv("RABBITMQ_QUEUE", "my-queue")
+    rabbitmq_user = os.getenv("RABBITMQ_USER", "guest")
+    rabbitmq_password = os.getenv("RABBITMQ_PASSWORD", "guest")
+    deployment_name = f"rabbitmq-consumer"
 
-    w = watch.Watch()
+    polling_interval = int(os.getenv("POLLING_INTERVAL", 10))  # Polling interval in seconds
+
+    logging.info("Starting RabbitMQ Consumer Controller with periodic queue monitoring...")
+
     while True:
         try:
-            logging.info("Starting to watch RabbitMQConsumer resources...")
-            for event in w.stream(custom_objects_api.list_cluster_custom_object, crd_group, crd_version, crd_plural):
-                obj = event["object"]
-                spec = obj.get("spec", {})
-                name = obj["metadata"]["name"]
-                event_type = event["type"]
+            # Fetch the current queue length
+            queue_length = get_queue_length(rabbitmq_host, rabbitmq_user, rabbitmq_password, rabbitmq_queue)
 
-                logging.info(f"Received event '{event_type}' for resource '{name}'.")
+            if queue_length == -1:
+                logging.warning("Failed to retrieve queue length. Skipping scaling.")
+                time.sleep(polling_interval)
+                continue
 
-                if event_type in ["ADDED", "MODIFIED"]:
-                    rabbitmq_host = spec.get("rabbitmqHost", os.getenv("RABBITMQ_HOST"))
-                    rabbitmq_queue = spec.get("rabbitmqQueue", os.getenv("RABBITMQ_QUEUE"))
-                    rabbitmq_user = spec.get("rabbitmqUser", os.getenv("RABBITMQ_USER"))
-                    rabbitmq_password = spec.get("rabbitmqPassword", os.getenv("RABBITMQ_PASSWORD"))
-                    deployment_name = f"rabbitmq-consumer"
+            # Determine desired replicas
+            if queue_length > threshold:
+                desired_replicas = min((queue_length // threshold) + 1, max_replicas)
+            else:
+                desired_replicas = min_replicas
 
-                    # Get the current queue length
-                    queue_length = get_queue_length(rabbitmq_host, rabbitmq_user, rabbitmq_password, rabbitmq_queue)
-
-                    if queue_length == -1:
-                        logging.warning(f"Failed to retrieve queue length for {name}. Skipping scaling.")
-                        continue
-
-                    # Determine the desired replicas based on queue length
-                    if queue_length > threshold:
-                        desired_replicas = min((queue_length // threshold) + 1, max_replicas)
-                    else:
-                        desired_replicas = min_replicas
-
-                    logging.info(f"Queue length: {queue_length}. Scaling deployment '{deployment_name}' to {desired_replicas} replicas.")
-                    scale_deployment(namespace, deployment_name, desired_replicas)
-
-                elif event_type == "DELETED":
-                    logging.info(f"Resource '{name}' deleted. No scaling action required.")
+            logging.info(f"Queue length: {queue_length}. Desired replicas: {desired_replicas}.")
+            scale_deployment(namespace, deployment_name, desired_replicas)
 
         except Exception as e:
-            logging.error(f"Error in watch stream: {e}. Retrying in 5 seconds...")
-            time.sleep(5)
+            logging.error(f"Error during queue monitoring: {e}")
+
+        # Wait for the next polling cycle
+        time.sleep(polling_interval)
 
 
 if __name__ == "__main__":
-    logging.info("Starting RabbitMQ Consumer Controller...")
     main()

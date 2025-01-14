@@ -18,7 +18,7 @@ spec:
       serviceAccountName: rabbitmq-controller
       containers:
       - name: rabbitmq-controller
-        image: sahil2898/one2n-controller:v1.4
+        image: sahil2898/one2n-controller:v1.5
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST
@@ -38,8 +38,10 @@ spec:
         - name: NAMESPACE
           value: "poc"
         - name: MIN_REPLICAS
-          value: "1"
+          value: "0"
         - name: MAX_REPLICAS
           value: "10"
         - name: THRESHOLD
           value: "100"
+        - name: POLLING_INTERVAL
+          value: "10"
