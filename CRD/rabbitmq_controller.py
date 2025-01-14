@@ -1,3 +1,4 @@
+import os
 from kubernetes import client, config, watch
 import pika
 
@@ -47,7 +48,7 @@ def create_or_update_deployment(namespace, spec, desired_replicas):
         spec (dict): Spec of the RabbitMQConsumer resource.
         desired_replicas (int): Desired number of replicas.
     """
-    deployment_name = f"rabbitmq-consumer-{spec['rabbitmqQueue']}"
+    deployment_name = f"rabbitmq-consumer"
 
     # Prepare environment variables for the container
     container_env = [
@@ -69,7 +70,7 @@ def create_or_update_deployment(namespace, spec, desired_replicas):
                     containers=[
                         client.V1Container(
                             name="rabbitmq-consumer",
-                            image="sahil2898/one2n-controller:v4",
+                            image="sahil2898/one2n-controller:v1.1",
                             env=container_env,
                             resources=client.V1ResourceRequirements(
                                 limits={"memory": "128Mi", "cpu": "500m"},
@@ -116,31 +117,32 @@ def main():
     """
     Main controller loop to watch for RabbitMQConsumer resources and manage deployments.
     """
-    crd_group = "one2n.com"
-    crd_version = "v1"
-    crd_plural = "rabbitmqconsumers"
+    crd_group = os.getenv("CRD_GROUP", "one2n.com")
+    crd_version = os.getenv("CRD_VERSION", "v1")
+    crd_plural = os.getenv("CRD_PLURAL", "rabbitmqconsumers")
+    namespace = os.getenv("NAMESPACE", "default")
+
+    min_replicas = int(os.getenv("MIN_REPLICAS", 1))
+    max_replicas = int(os.getenv("MAX_REPLICAS", 10))
+    threshold = int(os.getenv("THRESHOLD", 100))
 
     w = watch.Watch()
     for event in w.stream(custom_objects_api.list_cluster_custom_object, crd_group, crd_version, crd_plural):
         obj = event["object"]
-        namespace = obj["metadata"]["namespace"]
-        name = obj["metadata"]["name"]
         spec = obj.get("spec", {})
+        name = obj["metadata"]["name"]
 
         if event["type"] in ["ADDED", "MODIFIED"]:
-            rabbitmq_host = spec.get("rabbitmqHost")
-            rabbitmq_queue = spec.get("rabbitmqQueue")
-            rabbitmq_user = spec.get("rabbitmqUser")
-            rabbitmq_password = spec.get("rabbitmqPassword")
-            min_replicas = spec.get("minReplicas", 1)
-            max_replicas = spec.get("maxReplicas", 10)
-            threshold = spec.get("threshold", 100)
+            rabbitmq_host = spec.get("rabbitmqHost", os.getenv("RABBITMQ_HOST"))
+            rabbitmq_queue = spec.get("rabbitmqQueue", os.getenv("RABBITMQ_QUEUE"))
+            rabbitmq_user = spec.get("rabbitmqUser", os.getenv("RABBITMQ_USER"))
+            rabbitmq_password = spec.get("rabbitmqPassword", os.getenv("RABBITMQ_PASSWORD"))
 
             # Get the current queue length
             queue_length = get_queue_length(rabbitmq_host, rabbitmq_user, rabbitmq_password, rabbitmq_queue)
 
             if queue_length == -1:
-                print("Failed to retrieve queue length. Skipping scaling.")
+                print(f"Failed to retrieve queue length for {name}. Skipping scaling.")
                 continue
 
             # Determine the desired replicas based on queue length
@@ -153,7 +155,7 @@ def main():
             create_or_update_deployment(namespace, spec, desired_replicas)
 
         elif event["type"] == "DELETED":
-            deployment_name = f"rabbitmq-consumer-{spec['rabbitmqQueue']}"
+            deployment_name = f"rabbitmq-consumer-{spec.get('rabbitmqQueue')}"
             delete_deployment(namespace, deployment_name)
 
 

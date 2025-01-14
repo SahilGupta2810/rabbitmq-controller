@@ -15,9 +15,10 @@ spec:
       labels:
         app: rabbitmq-controller
     spec:
+      serviceAccountName: rabbitmq-controller # Use the dedicated service account
       containers:
       - name: rabbitmq-controller
-        image: sahil2898/one2n-controller:v1.0
+        image: sahil2898/one2n-controller:v1.1
         imagePullPolicy: IfNotPresent
         resources:
           limits:
@@ -26,4 +27,26 @@ spec:
           requests:
             memory: "128Mi"
             cpu: "250m"
-      restartPolicy: Always
+        env: # Environment variables block moved inside the container
+        - name: RABBITMQ_HOST
+          value: "rabbitmq-service.poc.svc.cluster.local"
+        - name: RABBITMQ_QUEUE
+          value: "one2n"
+        - name: RABBITMQ_USER
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          value: "test@123"
+        - name: CRD_GROUP
+          value: "one2n.com"
+        - name: CRD_VERSION
+          value: "v1"
+        - name: CRD_PLURAL
+          value: "rabbitmqconsumers"
+        - name: NAMESPACE
+          value: "poc"
+        - name: MIN_REPLICAS
+          value: "1"
+        - name: MAX_REPLICAS
+          value: "10"
+        - name: THRESHOLD
+          value: "150"
