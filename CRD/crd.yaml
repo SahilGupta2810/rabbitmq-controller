@@ -1,0 +1,47 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rabbitmqconsumers.example.com
+spec:
+  group: example.com
+  names:
+    kind: RabbitMQConsumer
+    listKind: RabbitMQConsumerList
+    plural: rabbitmqconsumers
+    singular: rabbitmqconsumer
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                rabbitmqHost:
+                  type: string
+                  description: "The RabbitMQ host to connect to."
+                rabbitmqQueue:
+                  type: string
+                  description: "The RabbitMQ queue to consume messages from."
+                rabbitmqUser:
+                  type: string
+                  description: "The username for RabbitMQ authentication."
+                rabbitmqPassword:
+                  type: string
+                  description: "The password for RabbitMQ authentication."
+                minReplicas:
+                  type: integer
+                  description: "The minimum number of consumer replicas."
+                  default: 1
+                maxReplicas:
+                  type: integer
+                  description: "The maximum number of consumer replicas."
+                  default: 10
+                threshold:
+                  type: integer
+                  description: "The number of messages in the queue to trigger scaling."
+                  default: 100

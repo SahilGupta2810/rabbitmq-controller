@@ -1,0 +1,45 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rabbitmq-consumer-manager
+rules:
+  - apiGroups: ["example.com"] # API group of the CRD
+    resources: ["rabbitmqconsumers"] # Custom resource
+    verbs: ["get", "list", "watch"] # Permissions needed by the controller
+--- 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rabbitmq-consumer-manager-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rabbitmq-consumer-manager # Referencing the ClusterRole created earlier
+subjects:
+  - kind: ServiceAccount
+    name: default # The service account used by the controller
+    namespace: poc # Namespace where the service account resides
+--- 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-controller-role
+  namespace: poc
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+--- 
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-controller-rolebinding
+  namespace: poc
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: poc
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq-controller-role

@@ -1,0 +1,13 @@
+apiVersion: example.com/v1
+kind: RabbitMQConsumer
+metadata:
+  name: my-rabbitmq-consumer
+  namespace: poc
+spec:
+  rabbitmqHost: "rabbitmq-service"
+  rabbitmqQueue: "one2n"
+  rabbitmqUser: "guest"
+  rabbitmqPassword: "test@123"
+  minReplicas: 1
+  maxReplicas: 10
+  threshold: 100

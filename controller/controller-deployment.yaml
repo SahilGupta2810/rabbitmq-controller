@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-autoscaler
+  namespace: poc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-autoscaler
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-autoscaler
+    spec:
+      containers:
+        - name: rabbitmq-autoscaler
+          image: sahil2898/rabbitmq-one2n:v6
+          env:
+            - name: RABBITMQ_HOST
+              value: "http://rabbitmq-service:15672"
+            - name: RABBITMQ_USER
+              value: "guest"
+            - name: RABBITMQ_PASS
+              value: "test@123"
+            - name: QUEUE_NAME
+              value: "one2n"
+            - name: NAMESPACE
+              value: "poc"
+            - name: TARGET_DEPLOYMENT
+              value: "consumer-deployment"
+            - name: MAX_QUEUE_MESSAGES
+              value: "100"
+            - name: MIN_REPLICAS
+              value: "1"
+            - name: MAX_REPLICAS
+              value: "10"
+            - name: CHECK_INTERVAL
+              value: "30"

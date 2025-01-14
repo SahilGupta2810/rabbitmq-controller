@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-controller
+  namespace: poc
+  labels:
+    app: rabbitmq-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-controller
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-controller
+    spec:
+      containers:
+      - name: rabbitmq-controller
+        image: sahil2898/one2n-controller:v5
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+      restartPolicy: Always
