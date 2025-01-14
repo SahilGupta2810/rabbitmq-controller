@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq-producer
-        image: sahil2898/one2n-producer:v2
+        image: sahil2898/one2n-producer:v1.0
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST

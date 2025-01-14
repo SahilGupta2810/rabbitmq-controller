@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq-consumer
-        image: sahil2898/one2n-consumer:v1
+        image: sahil2898/one2n-consumer:v1.0
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST
