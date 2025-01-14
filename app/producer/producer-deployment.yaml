@@ -58,7 +58,7 @@ metadata:
 data:
   host: "rabbitmq-service"
   queue: "one2n"
-  messagesPerSecond: "1"
+  messagesPerSecond: "1000"
 ---
 apiVersion: v1
 kind: Service

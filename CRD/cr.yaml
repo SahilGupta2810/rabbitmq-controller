@@ -4,10 +4,10 @@ metadata:
   name: one2n-consumer
   namespace: poc
 spec:
-  rabbitmqHost: "rabbitmq-service"
+  rabbitmqHost: "rabbitmq-service.poc.svc.cluster.local"
   rabbitmqQueue: "one2n"
   rabbitmqUser: "guest"
   rabbitmqPassword: "test@123"
   minReplicas: 1
   maxReplicas: 10
-  threshold: 15
+  threshold: 100

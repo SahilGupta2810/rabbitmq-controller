@@ -18,17 +18,17 @@ spec:
       serviceAccountName: rabbitmq-controller
       containers:
       - name: rabbitmq-controller
-        image: sahil2898/one2n-controller:v1.1
+        image: sahil2898/one2n-controller:v1.3
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST
-          value: "rabbitmq.default.svc.cluster.local"
+          value: "rabbitmq-service.poc.svc.cluster.local"
         - name: RABBITMQ_QUEUE
-          value: "my-queue"
+          value: "one2n"
         - name: RABBITMQ_USER
           value: "guest"
         - name: RABBITMQ_PASSWORD
-          value: "guest"
+          value: "test@123"
         - name: CRD_GROUP
           value: "one2n.com"
         - name: CRD_VERSION
@@ -36,7 +36,7 @@ spec:
         - name: CRD_PLURAL
           value: "rabbitmqconsumers"
         - name: NAMESPACE
-          value: "default"
+          value: "poc"
         - name: MIN_REPLICAS
           value: "1"
         - name: MAX_REPLICAS
