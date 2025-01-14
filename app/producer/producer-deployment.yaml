@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-producer
+  namespace: poc
+  labels:
+    app: rabbitmq-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-producer
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-producer
+    spec:
+      containers:
+      - name: rabbitmq-producer
+        image: sahil2898/one2n-mqtt-producer:v2
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: RABBITMQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: rabbitmq-config
+              key: host
+        - name: RABBITMQ_QUEUE
+          valueFrom:
+            configMapKeyRef:
+              name: rabbitmq-config
+              key: queue
+        - name: MESSAGES_PER_SECOND
+          valueFrom:
+            configMapKeyRef:
+              name: rabbitmq-config
+              key: messagesPerSecond
+        - name: RABBITMQ_PASSWORD
+          value: test@123
+        - name: RABBITMQ_USER
+          value: guest      
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: poc
+  labels:
+    app: rabbitmq-config
+data:
+  host: "rabbitmq-service"
+  queue: "one2n"
+  messagesPerSecond: "100"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-service
+  namespace: poc
+  labels:
+    app: rabbitmq
+spec:
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  selector:
+    app: rabbitmq
