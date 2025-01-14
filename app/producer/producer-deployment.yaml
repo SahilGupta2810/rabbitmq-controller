@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: rabbitmq-producer
-        image: sahil2898/one2n-producer:v1.0
+        image: sahil2898/one2n-producer:v1.1
         imagePullPolicy: IfNotPresent
         env:
         - name: RABBITMQ_HOST
@@ -58,7 +58,7 @@ metadata:
 data:
   host: "rabbitmq-service"
   queue: "one2n"
-  messagesPerSecond: "100"
+  messagesPerSecond: "1"
 ---
 apiVersion: v1
 kind: Service

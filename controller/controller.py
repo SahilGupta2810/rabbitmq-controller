@@ -1,30 +1,42 @@
 import os
 import time
 import requests
+import logging
 from kubernetes import client, config
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG for detailed logs
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 # Load Kubernetes configuration (in-cluster or kubeconfig)
 if os.getenv("KUBERNETES_SERVICE_HOST"):
-    config.load_incluster_config()  # For in-cluster execution (e.g., when running in a Kubernetes pod)
+    logging.info("Loading in-cluster Kubernetes configuration.")
+    config.load_incluster_config()  # For in-cluster execution
 else:
-    config.load_kube_config()  # For local development (requires kubeconfig)
+    logging.info("Loading kubeconfig for local development.")
+    config.load_kube_config()  # For local development
 
 # Kubernetes API client
 apps_v1 = client.AppsV1Api()
 
-# RabbitMQ configuration (passed as environment variables or hardcoded)
+# RabbitMQ configuration
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "http://rabbitmq-service:15672")
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "guest")
-QUEUE_NAME = os.getenv("QUEUE_NAME", "my-queue")
+RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "test@123")
+QUEUE_NAME = os.getenv("QUEUE_NAME", "one2n")
 
 # Scaling configuration
 NAMESPACE = os.getenv("NAMESPACE", "default")
 TARGET_DEPLOYMENT = os.getenv("TARGET_DEPLOYMENT", "consumer-deployment")
-MAX_QUEUE_MESSAGES = int(os.getenv("MAX_QUEUE_MESSAGES", 100))  # Scale up if > 100 messages
+MAX_QUEUE_MESSAGES = int(os.getenv("MAX_QUEUE_MESSAGES", 15))
 MIN_REPLICAS = int(os.getenv("MIN_REPLICAS", 1))
-MAX_REPLICAS = int(os.getenv("MAX_REPLICAS", 10))
-CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", 30))  # Interval (seconds) to check queue depth
+MAX_REPLICAS = int(os.getenv("MAX_REPLICAS", 6))
+CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", 10))
 
 
 def get_queue_depth():
@@ -36,13 +48,16 @@ def get_queue_depth():
     """
     try:
         url = f"{RABBITMQ_HOST}/api/queues/%2f/{QUEUE_NAME}"  # RabbitMQ API endpoint
-        response = requests.get(url, auth=(RABBITMQ_USER, RABBITMQ_PASS))
+        logging.debug(f"Fetching queue depth from {url}")
+        response = requests.get(url, auth=(RABBITMQ_USER, RABBITMQ_PASS), timeout=5)
         response.raise_for_status()
         queue_data = response.json()
-        return queue_data.get("messages", 0)  # Return message count
+        queue_depth = queue_data.get("messages", 0)
+        logging.info(f"Queue '{QUEUE_NAME}' depth: {queue_depth} messages.")
+        return queue_depth
     except requests.RequestException as e:
-        print(f"Error fetching queue depth: {e}")
-        return 0  # Default to 0 on error
+        logging.error(f"Error fetching queue depth: {e}")
+        return 0
 
 
 def get_current_replicas(deployment_name, namespace):
@@ -57,10 +72,13 @@ def get_current_replicas(deployment_name, namespace):
         int: The number of replicas in the Deployment or None if an error occurs.
     """
     try:
+        logging.debug(f"Fetching current replicas for deployment '{deployment_name}' in namespace '{namespace}'.")
         deployment = apps_v1.read_namespaced_deployment(name=deployment_name, namespace=namespace)
-        return deployment.spec.replicas
+        current_replicas = deployment.spec.replicas
+        logging.info(f"Current replicas for '{deployment_name}': {current_replicas}")
+        return current_replicas
     except client.exceptions.ApiException as e:
-        print(f"Error fetching deployment '{deployment_name}': {e}")
+        logging.error(f"Error fetching deployment '{deployment_name}': {e}")
         return None
 
 
@@ -72,20 +90,15 @@ def scale_deployment(deployment_name, namespace, replicas):
         deployment_name (str): The name of the Deployment to scale.
         namespace (str): The namespace of the Deployment.
         replicas (int): The desired number of replicas.
-
-    Returns:
-        None
     """
     try:
-        # Get the current Deployment object
+        logging.debug(f"Scaling deployment '{deployment_name}' to {replicas} replicas in namespace '{namespace}'.")
         deployment = apps_v1.read_namespaced_deployment(name=deployment_name, namespace=namespace)
-        # Update the replicas field
         deployment.spec.replicas = replicas
-        # Apply the changes
         apps_v1.patch_namespaced_deployment(name=deployment_name, namespace=namespace, body=deployment)
-        print(f"Scaled deployment '{deployment_name}' to {replicas} replicas.")
+        logging.info(f"Scaled deployment '{deployment_name}' to {replicas} replicas.")
     except client.exceptions.ApiException as e:
-        print(f"Error scaling deployment '{deployment_name}': {e}")
+        logging.error(f"Error scaling deployment '{deployment_name}': {e}")
 
 
 def reconcile():
@@ -93,35 +106,34 @@ def reconcile():
     Main reconciliation loop to monitor the RabbitMQ queue depth and scale the Deployment accordingly.
     """
     while True:
-        # Get the current queue depth
+        logging.debug("Starting reconciliation loop.")
         queue_depth = get_queue_depth()
-        print(f"Queue '{QUEUE_NAME}' depth: {queue_depth} messages.")
-
-        # Fetch the current number of replicas in the Deployment
         current_replicas = get_current_replicas(TARGET_DEPLOYMENT, NAMESPACE)
+
         if current_replicas is None:
+            logging.warning("Current replicas could not be fetched. Skipping this cycle.")
             time.sleep(CHECK_INTERVAL)
             continue
 
-        # Determine the desired number of replicas based on queue depth
+        # Determine the desired number of replicas
         if queue_depth > MAX_QUEUE_MESSAGES:
-            desired_replicas = min(MAX_REPLICAS, current_replicas + 1)  # Scale up by 1, capped at MAX_REPLICAS
+            desired_replicas = min(MAX_REPLICAS, current_replicas + 1)
         elif queue_depth == 0:
-            desired_replicas = MIN_REPLICAS  # Scale down to minimum
+            desired_replicas = MIN_REPLICAS
         else:
-            desired_replicas = current_replicas  # No scaling needed
+            desired_replicas = current_replicas
 
-        # Scale the Deployment if needed
+        # Scale if needed
         if desired_replicas != current_replicas:
-            print(f"Scaling '{TARGET_DEPLOYMENT}' from {current_replicas} to {desired_replicas} replicas.")
+            logging.info(f"Scaling '{TARGET_DEPLOYMENT}' from {current_replicas} to {desired_replicas} replicas.")
             scale_deployment(TARGET_DEPLOYMENT, NAMESPACE, desired_replicas)
         else:
-            print(f"No scaling needed for '{TARGET_DEPLOYMENT}'.")
+            logging.info(f"No scaling required for '{TARGET_DEPLOYMENT}'.")
 
-        # Sleep before the next reconciliation loop
+        logging.debug(f"Sleeping for {CHECK_INTERVAL} seconds before next loop.")
         time.sleep(CHECK_INTERVAL)
 
 
 if __name__ == "__main__":
-    print("Starting RabbitMQ autoscaler...")
+    logging.info("Starting RabbitMQ autoscaler...")
     reconcile()

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: rabbitmq-autoscaler
-          image: sahil2898/one2n-controller:v6
+          image: sahil2898/one2n-controller:v1.0
           env:
             - name: RABBITMQ_HOST
               value: "http://rabbitmq-service:15672"
@@ -30,10 +30,10 @@ spec:
             - name: TARGET_DEPLOYMENT
               value: "consumer-deployment"
             - name: MAX_QUEUE_MESSAGES
-              value: "100"
+              value: "15"
             - name: MIN_REPLICAS
               value: "1"
             - name: MAX_REPLICAS
               value: "10"
             - name: CHECK_INTERVAL
-              value: "30"
+              value: "10"
