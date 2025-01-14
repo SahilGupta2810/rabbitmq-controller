@@ -1,13 +1,14 @@
+# Use a lightweight Python base image
 FROM python:3.9-slim
 
+# Set the working directory inside the container
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Copy the controller script into the container
+COPY rabbitmq_controller.py .
 
-# Copy the Python script
-COPY controller.py .
+# Install required Python libraries
+RUN pip install kubernetes pika
 
-# Command to run the controller
-CMD ["python", "controller.py"]
+# Set the command to run the controller
+CMD ["python", "rabbitmq_controller.py"]

@@ -1,39 +1,45 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rabbitmq-autoscaler
+  name: rabbitmq-controller
   namespace: poc
+  labels:
+    app: rabbitmq-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rabbitmq-autoscaler
+      app: rabbitmq-controller
   template:
     metadata:
       labels:
-        app: rabbitmq-autoscaler
+        app: rabbitmq-controller
     spec:
+      serviceAccountName: rabbitmq-controller
       containers:
-        - name: rabbitmq-autoscaler
-          image: sahil2898/one2n-controller:v1.0
-          env:
-            - name: RABBITMQ_HOST
-              value: "http://rabbitmq-service:15672"
-            - name: RABBITMQ_USER
-              value: "guest"
-            - name: RABBITMQ_PASS
-              value: "test@123"
-            - name: QUEUE_NAME
-              value: "one2n"
-            - name: NAMESPACE
-              value: "poc"
-            - name: TARGET_DEPLOYMENT
-              value: "consumer-deployment"
-            - name: MAX_QUEUE_MESSAGES
-              value: "15"
-            - name: MIN_REPLICAS
-              value: "1"
-            - name: MAX_REPLICAS
-              value: "10"
-            - name: CHECK_INTERVAL
-              value: "10"
+      - name: rabbitmq-controller
+        image: sahil2898/one2n-controller:v1.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: RABBITMQ_HOST
+          value: "rabbitmq.default.svc.cluster.local"
+        - name: RABBITMQ_QUEUE
+          value: "my-queue"
+        - name: RABBITMQ_USER
+          value: "guest"
+        - name: RABBITMQ_PASSWORD
+          value: "guest"
+        - name: CRD_GROUP
+          value: "one2n.com"
+        - name: CRD_VERSION
+          value: "v1"
+        - name: CRD_PLURAL
+          value: "rabbitmqconsumers"
+        - name: NAMESPACE
+          value: "default"
+        - name: MIN_REPLICAS
+          value: "1"
+        - name: MAX_REPLICAS
+          value: "10"
+        - name: THRESHOLD
+          value: "100"
