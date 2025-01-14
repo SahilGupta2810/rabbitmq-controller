@@ -1,14 +1,14 @@
+# Use a lightweight Python image
 FROM python:3.9-slim
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the Python script
+COPY rabbitmq_producer.py .
 
-# Copy application code
-COPY rabbitmq_producer.py ./
+# Install pika library
+RUN pip install pika
 
-# Run the application
-CMD ["python", "rabbitmq_producer.py"]
+# Command to run the consumer app
+CMD ["python", "rabbitmq_consumer.py"]

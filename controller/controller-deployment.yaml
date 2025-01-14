@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: rabbitmq-autoscaler
-          image: sahil2898/rabbitmq-one2n:v6
+          image: sahil2898/one2n-controller:v6
           env:
             - name: RABBITMQ_HOST
               value: "http://rabbitmq-service:15672"

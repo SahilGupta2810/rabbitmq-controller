@@ -4,9 +4,9 @@ import os
 
 # RabbitMQ connection details from environment variables
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')  # Default to 'localhost' if not set
-RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE', 'test_queue')
+RABBITMQ_QUEUE = os.getenv('RABBITMQ_QUEUE', 'one2n')
 RABBITMQ_USER = os.getenv('RABBITMQ_USER', 'guest')  # Default to 'guest'
-RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD', 'guest')  # Default to 'guest'
+RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD', 'test@123')  # Default to 'guest'
 MESSAGES_PER_SECOND = int(os.getenv('MESSAGES_PER_SECOND', '100'))
 
 # Function to create a RabbitMQ connection and channel
